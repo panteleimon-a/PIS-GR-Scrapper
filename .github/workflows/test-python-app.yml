@@ -2,8 +2,8 @@ name: Python application test run
 
 on:
   schedule:
-    # 20:45 Greek time (UTC+3) is 17:45 UTC
-    - cron: '45 17 21 7 *'
+    # 20:52 Greek time (UTC+3) is 17:52 UTC
+    - cron: '52 17 21 7 *'
   workflow_dispatch:
 
 jobs:
