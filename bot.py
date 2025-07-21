@@ -39,49 +39,62 @@ def load_credentials():
     return creds["username"], creds["password"]
 
 def run_bot():
-    """Log in to portal, navigate to applications page, and save HTML."""
+    """Log in to portal, navigate to applications page, and save HTML with retries."""
+    import time
+    MAX_RETRIES = 1
+    WAIT_TIMEOUT = 5
+    RETRY_DELAY = 2
     username, password = load_credentials()
-    driver = init_driver()
-    try:
-        login_url = "https://myrequests.pis.gr/Account/Login.aspx"
-        driver.get(login_url)
-        wait = WebDriverWait(driver, 30)
+    for attempt in range(MAX_RETRIES):
+        driver = init_driver()
         try:
-            username_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_UserName")))
-            password_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_Password")))
-            login_button = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_LoginButton")))
-        except TimeoutException:
-            print("Login form elements not found. Printing current page source for debugging:")
-            print(driver.page_source)
-            raise
+            print(f"Login attempt {attempt + 1} of {MAX_RETRIES}...")
+            login_url = "https://myrequests.pis.gr/Account/Login.aspx"
+            driver.get(login_url)
+            wait = WebDriverWait(driver, WAIT_TIMEOUT)
+            try:
+                username_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_UserName")))
+                password_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_Password")))
+                login_button = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_LoginButton")))
+            except TimeoutException:
+                print("Login form elements not found. Printing current page source for debugging:")
+                print(driver.page_source)
+                raise
 
-        username_input.clear()
-        username_input.send_keys(username)
-        password_input.clear()
-        password_input.send_keys(password)
-        login_button.click()
+            username_input.clear()
+            username_input.send_keys(username)
+            password_input.clear()
+            password_input.send_keys(password)
+            login_button.click()
 
-        try:
-            wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Logout")))
-        except TimeoutException:
-            print("Login may have failed. Printing current page source for debugging:")
-            print(driver.page_source)
-            raise
+            try:
+                wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Logout")))
+            except TimeoutException:
+                print("Login may have failed. Printing current page source for debugging:")
+                print(driver.page_source)
+                raise
 
-        driver.get("https://myrequests.pis.gr/Applications.aspx")
-        try:
-            wait.until(EC.presence_of_element_located((By.TAG_NAME, "html")))
-        except TimeoutException:
-            print("Applications page did not load. Printing current page source for debugging:")
-            print(driver.page_source)
-            raise
+            driver.get("https://myrequests.pis.gr/Applications.aspx")
+            try:
+                wait.until(EC.presence_of_element_located((By.TAG_NAME, "html")))
+            except TimeoutException:
+                print("Applications page did not load. Printing current page source for debugging:")
+                print(driver.page_source)
+                raise
 
-        with open("application_view.html", "w", encoding="utf-8") as f:
-            f.write(driver.page_source)
-    except (TimeoutException, NoSuchElementException) as e:
-        print(f"Error during automation: {e}")
-    finally:
-        driver.quit()
+            with open("application_view.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print("✅ Login and scrape successful!")
+            driver.quit()
+            break
+        except (TimeoutException, NoSuchElementException) as e:
+            print(f"❌ Attempt {attempt + 1} failed. Server is likely busy or element not found.")
+            driver.quit()
+            if attempt < MAX_RETRIES - 1:
+                print(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY)
+            else:
+                print("All login attempts failed.")
 
 if __name__ == "__main__":
     run_bot()
