@@ -2,3 +2,4 @@
 __pycache__/
 application_view.html
 credentials.json
+.pytest_cache

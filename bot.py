@@ -3,6 +3,7 @@ import os
 import base64
 import json
 import time
+from datetime import datetime, timedelta, timezone
 from playwright.sync_api import sync_playwright
 
 def load_credentials():
@@ -28,13 +29,26 @@ def load_credentials():
     except FileNotFoundError:
         raise Exception("Credentials not found. Please set PIS_USERNAME/PIS_PASSWORD env vars or create credentials.json.")
 
+def get_greek_time():
+    # Greek time is UTC+3
+    return datetime.now(timezone.utc) + timedelta(hours=3)
+
+def wait_until(target_dt):
+    """Wait until the target datetime (Greek time)."""
+    while True:
+        now = get_greek_time()
+        if now >= target_dt:
+            break
+        wait_sec = (target_dt - now).total_seconds()
+        print(f"Waiting {wait_sec:.1f} seconds until {target_dt.strftime('%Y-%m-%d %H:%M:%S')} Greek time...")
+        time.sleep(min(wait_sec, 30))
+
 def run_scraper():
-    """Log in to portal using Playwright, navigate to applications page, and save HTML. Also count time taken."""
+    """Log in to portal, wait until 14:00 Greek time, then repeatedly download the applications page for 1 minute, every 5 seconds, saving each with a timestamp."""
     start_time = time.time()
     username, password = load_credentials()
 
     login_url = "https://myrequests.pis.gr/Account/Login.aspx"
-    home_url = "https://myrequests.pis.gr/Default.aspx"
     applications_url = "https://myrequests.pis.gr/Applications.aspx"
 
     with sync_playwright() as p:
@@ -79,16 +93,43 @@ def run_scraper():
                 print(f"Could not find logout link: {e}")
 
         if login_success:
-            print("✅ Login successful! Navigating to applications page...")
-            # Optionally, save the home page after login
-            with open("home_page.html", "w", encoding="utf-8") as f:
-                f.write(page.content())
+            print("✅ Login successful! Navigating to applications page and waiting for 14:00 Greek time...")
             # Go to applications page
             page.goto(applications_url)
             page.wait_for_load_state("networkidle")
-            with open("application_view.html", "w", encoding="utf-8") as f:
-                f.write(page.content())
-            print("✅ Applications page scraped successfully and saved to application_view.html")
+
+            # Wait until 14:00 Greek time
+            greek_now = get_greek_time()
+            target_time = greek_now.replace(hour=14, minute=0, second=0, microsecond=0)
+            if greek_now >= target_time:
+                print("It's already 14:00 or later Greek time, starting immediately.")
+            else:
+                wait_until(target_time)
+
+            # Start repeated download loop for 1 minute, every 5 seconds
+            loop_start = time.time()
+            duration = 60  # seconds
+            interval = 5   # seconds
+            count = 0
+            while True:
+                now = time.time()
+                if now - loop_start > duration:
+                    break
+                # Get Greek time for filename
+                greek_now = get_greek_time()
+                ts = greek_now.strftime("%Y%m%d_%H%M%S")
+                fname = f"application_view_{ts}.html"
+                print(f"Saving {fname}")
+                with open(fname, "w", encoding="utf-8") as f:
+                    f.write(page.content())
+                count += 1
+                if now - loop_start + interval > duration:
+                    break
+                time.sleep(interval)
+                # This is the codecell that makes sure the page is refreshed:
+                page.reload()
+                page.wait_for_load_state("networkidle")
+            print(f"✅ Finished repeated downloads. Total pages saved: {count}")
         else:
             print("Login likely failed. Check credentials or form data.")
             with open("login_failed_response.html", "w", encoding="utf-8") as f:
