@@ -46,17 +46,36 @@ def run_bot():
         login_url = "https://myrequests.pis.gr/Account/Login.aspx"
         driver.get(login_url)
         wait = WebDriverWait(driver, 30)
-        username_input = wait.until(EC.element_to_be_clickable((By.NAME, "username")))
-        password_input = wait.until(EC.element_to_be_clickable((By.NAME, "password")))
-        login_button = wait.until(EC.element_to_be_clickable((By.ID, "loginButton")))
+        try:
+            username_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_UserName")))
+            password_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_Password")))
+            login_button = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_LoginButton")))
+        except TimeoutException:
+            print("Login form elements not found. Printing current page source for debugging:")
+            print(driver.page_source)
+            raise
+
         username_input.clear()
         username_input.send_keys(username)
         password_input.clear()
         password_input.send_keys(password)
         login_button.click()
-        wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Logout")))
+
+        try:
+            wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Logout")))
+        except TimeoutException:
+            print("Login may have failed. Printing current page source for debugging:")
+            print(driver.page_source)
+            raise
+
         driver.get("https://myrequests.pis.gr/Applications.aspx")
-        wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+        try:
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "html")))
+        except TimeoutException:
+            print("Applications page did not load. Printing current page source for debugging:")
+            print(driver.page_source)
+            raise
+
         with open("application_view.html", "w", encoding="utf-8") as f:
             f.write(driver.page_source)
     except (TimeoutException, NoSuchElementException) as e:
