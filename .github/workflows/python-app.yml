@@ -34,3 +34,13 @@ jobs:
         PIS_PASSWORD: ${{ secrets.PIS_PASSWORD }}
       run: |
         python bot.py
+
+    - name: Upload HTML artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: pis-gr-scraper-html
+        path: |
+          home_page.html
+          application_view.html
+          login_failed_response.html
+        if-no-files-found: warn
