@@ -1,0 +1,28 @@
+name: Manual Test Bot
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run bot
+        env:
+          PIS_USERNAME: ${{ secrets.PIS_USERNAME }}
+          PIS_PASSWORD: ${{ secrets.PIS_PASSWORD }}
+        run: python bot.py
+      - name: Upload application view
+        uses: actions/upload-artifact@v4
+        with:
+          name: application-view
+          path: application_view.html
