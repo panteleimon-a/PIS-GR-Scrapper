@@ -1,0 +1,114 @@
+# -*- coding: utf-8 -*-
+import json
+import os
+import base64
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+import tempfile
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+import time # Import time for delays between retries
+
+def init_driver():
+    """Initialize headless Chrome WebDriver (with GitHub Actions-safe options)."""
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    driver = webdriver.Chrome(options=options)
+    return driver
+
+def load_credentials():
+    """Read username/password from env, base64 env, or credentials.json."""
+    username = os.environ.get("PIS_USERNAME")
+    password = os.environ.get("PIS_PASSWORD")
+    username_b64 = os.environ.get("PIS_USERNAME_B64")
+    if username_b64:
+        username = base64.b64decode(username_b64).decode("utf-8")
+    if username and password:
+        return username, password
+    with open("credentials.json", "r", encoding="utf-8") as f:
+        creds = json.load(f)
+    return creds["username"], creds["password"]
+
+def run_bot():
+    """Log in to portal, navigate to applications page, and save HTML with retries."""
+    
+    # ADJUSTED PARAMETERS
+    MAX_RETRIES = 3 # Increased retries for robustness
+    WAIT_TIMEOUT = 25 # Increased timeout for high-traffic scenario
+    RETRY_DELAY = 10 # seconds between retries
+
+    username, password = load_credentials()
+    driver = None # Initialize driver to None
+
+    for attempt in range(MAX_RETRIES):
+        try:
+            print(f"Login attempt {attempt + 1} of {MAX_RETRIES}...")
+            driver = init_driver() # Initialize driver inside the loop for fresh session
+            login_url = "https://myrequests.pis.gr/Account/Login.aspx"
+            driver.get(login_url)
+            wait = WebDriverWait(driver, WAIT_TIMEOUT)
+
+            # Check if already logged in (e.g., if cookies persisted from a previous run)
+            # This is key! Check for the "Έξοδος" (Logout) link text directly.
+            try:
+                logout_link = wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Έξοδος")))
+                print("Already logged in. Proceeding to applications page.")
+                # If you need to refresh current page state after detecting logout, you can do:
+                # driver.get(applications_url) # or the URL you want to scrape directly
+                # skip login steps, go to scrape logic
+                break # Exit the retry loop as we are logged in
+            except TimeoutException:
+                print("Not logged in or logout link not found, proceeding with login.")
+                # This means we are on the login page or an unexpected state, so proceed with login elements
+
+            # Proceed with finding login elements only if not already logged in
+            username_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_UserName")))
+            password_input = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_Password")))
+            login_button = wait.until(EC.element_to_be_clickable((By.ID, "MainContent_LoginUser_LoginButton")))
+            
+            username_input.clear()
+            username_input.send_keys(username)
+            password_input.clear()
+            password_input.send_keys(password)
+            login_button.click()
+
+            # Verify login success by looking for the "Έξοδος" link
+            print("Login button clicked. Waiting for successful login indicator...")
+            wait.until(EC.presence_of_element_located((By.LINK_TEXT, "Έξοδος"))) # CORRECTED TEXT
+
+            print("✅ Login successful!")
+            
+            # Navigate to the applications page
+            applications_url = "https://myrequests.pis.gr/Applications.aspx"
+            driver.get(applications_url)
+            
+            # Wait for the main content of the applications page to load.
+            # A generic element like <html> or <body> is fine, but more specific is better if available
+            wait.until(EC.presence_of_element_located((By.TAG_NAME, "html"))) 
+
+            with open("application_view.html", "w", encoding="utf-8") as f:
+                f.write(driver.page_source)
+            print("✅ Applications page scraped successfully and saved to application_view.html")
+            break # Exit the loop on success
+
+        except (TimeoutException, NoSuchElementException) as e:
+            print(f"❌ Attempt {attempt + 1} failed: {e}. Printing current page source for debugging:")
+            print(driver.page_source) # Print page source on failure for diagnostics
+            if driver:
+                driver.quit() # Ensure driver is closed on failure
+            if attempt < MAX_RETRIES - 1:
+                print(f"Retrying in {RETRY_DELAY} seconds...")
+                time.sleep(RETRY_DELAY) # Wait before the next attempt
+            else:
+                print("All login attempts failed.")
+        finally:
+            if driver:
+                driver.quit() # Ensure driver is closed even if an unhandled error occurs
+
+if __name__ == "__main__":
+    run_bot()
