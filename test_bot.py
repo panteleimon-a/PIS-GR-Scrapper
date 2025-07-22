@@ -44,7 +44,7 @@ def wait_until(target_dt):
         time.sleep(min(wait_sec, 30))
 
 def run_scraper():
-    """Log in to portal, wait until 14:00 Greek time, then repeatedly download the applications page for 1 minute, every 5 seconds, saving each with a timestamp."""
+    """Log in to portal, wait until xx Greek time, then repeatedly download the applications page for 1 minute, every 5 seconds, saving each with a timestamp."""
     start_time = time.time()
     username, password = load_credentials()
 
@@ -93,14 +93,11 @@ def run_scraper():
                 print(f"Could not find logout link: {e}")
 
         if login_success:
-            # Wait until 1 hour from now (current Greek time)
+            # Wait until Greek time is 14:00
             now = get_greek_time()
-            scheduled_start = now + timedelta(hours=1)
-            if now < scheduled_start:
-                print(f"Waiting {(scheduled_start - now).total_seconds():.1f} seconds until scheduled start at {scheduled_start.strftime('%Y-%m-%d %H:%M:%S')} Greek time...")
-                wait_until(scheduled_start)
-            print("✅ Scheduled start reached. Waiting 5 minutes before scraping...")
-            wait_until(scheduled_start + timedelta(minutes=5))
+            target_time = now.replace(hour=14, minute=0, second=0, microsecond=0)
+            print(f"✅ Scheduled start reached. Waiting until 14:00 Greek time before scraping...")
+            wait_until(target_time)
             print("Proceeding to applications page and starting 1-minute scrape window.")
             # Go to applications page
             page.goto(applications_url)
