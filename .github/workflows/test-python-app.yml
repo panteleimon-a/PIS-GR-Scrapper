@@ -2,8 +2,8 @@ name: Python application test run
 
 on:
   schedule:
-    # 09:22 Greek time (UTC+3) is 06:22 UTC, 12 hours ahead of previous 21:22 Greek time
-    - cron: '22 6 22 7 *'
+    # 11:47 Greek time (UTC+3) is 08:47 UTC, scheduled for 1 hour from now
+    - cron: '47 8 22 7 *'
   workflow_dispatch:
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
       run: |
         python -m playwright install
 
-    - name: Run test_bot.py
+    - name: Run b.py
       env:
         PIS_USERNAME: ${{ secrets.PIS_USERNAME }}
         PIS_PASSWORD: ${{ secrets.PIS_PASSWORD }}
