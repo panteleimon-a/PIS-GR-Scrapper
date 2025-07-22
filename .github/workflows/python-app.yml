@@ -2,9 +2,9 @@ name: Python application
 
 on:
   schedule:
-    # 13:55 Greek time (UTC+3) on Tuesday 29/07/2025 is 10:55 UTC
-    - cron: '55 10 29 7 2'
-    - cron: '56 10 29 7 2' # Minute 56, Hour 10 (UTC), Day 29, Month 7 (July), Day of Week 2 (Tuesday)
+    # 13:50 Greek time (UTC+3) on Tuesday 29/07/2025 is 10:50 UTC
+    - cron: '50 10 29 7 2'
+    - cron: '51 10 29 7 2' # Minute 51, Hour 10 (UTC), Day 29, Month 7 (July), Day of Week 2 (Tuesday)
   workflow_dispatch: # Allows manual triggering
 
 jobs:

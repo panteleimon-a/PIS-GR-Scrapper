@@ -93,39 +93,43 @@ def run_scraper():
                 print(f"Could not find logout link: {e}")
 
         if login_success:
-            # Wait until Greek time is 14:00
-            now = get_greek_time()
-            target_time = now.replace(hour=14, minute=0, second=0, microsecond=0)
-            print(f"✅ Scheduled start reached. Waiting until 14:00 Greek time before scraping...")
-            wait_until(target_time)
             print("Proceeding to applications page and starting 1-minute scrape window.")
             # Go to applications page
             page.goto(applications_url)
             page.wait_for_load_state("networkidle")
-
-            # Start repeated download loop for 1 minute, every 5 seconds
+            # Wait until Greek time is 14:00
+            now = get_greek_time()
+            target_time = now.replace(hour=13, minute=59, second=59, microsecond=5)
+            print(f"✅ Scheduled start reached. Already at /Applications page. Waiting until 14:00 Greek time before scraping...")
             loop_start = time.time()
             duration = 60  # seconds
             interval = 5   # seconds
             count = 0
+            wait_until(target_time)
+            # Start repeated download loop for 1 minute, every 5 seconds
             while True:
                 now = time.time()
                 if now - loop_start > duration:
                     break
-                # Get Greek time for filename
-                greek_now = get_greek_time()
-                ts = greek_now.strftime("%Y%m%d_%H%M%S")
-                fname = f"application_view_{ts}.html"
-                print(f"Saving {fname}")
-                with open(fname, "w", encoding="utf-8") as f:
-                    f.write(page.content())
-                count += 1
+                try:
+                    greek_now = get_greek_time()
+                    ts = greek_now.strftime("%Y%m%d_%H%M%S")
+                    fname = f"application_view_{ts}.html"
+                    print(f"Saving {fname}")
+                    page_html = page.content()
+                    with open(fname, "w", encoding="utf-8") as f:
+                        f.write(page_html)
+                    count += 1
+                except Exception as e:
+                    print(f"❌ Error during page save or reload: {e}")
                 if now - loop_start + interval > duration:
                     break
                 time.sleep(interval)
-                # This is the codecell that makes sure the page is refreshed:
-                page.reload()
-                page.wait_for_load_state("networkidle")
+                try:
+                    page.reload()
+                    page.wait_for_load_state("networkidle")
+                except Exception as e:
+                    print(f"❌ Error during page reload: {e}")
             print(f"✅ Finished repeated downloads. Total pages saved: {count}")
         else:
             print("Login likely failed. Check credentials or form data.")

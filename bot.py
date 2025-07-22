@@ -111,20 +111,25 @@ def run_scraper():
                 now = time.time()
                 if now - loop_start > duration:
                     break
-                # Get Greek time for filename
-                greek_now = get_greek_time()
-                ts = greek_now.strftime("%Y%m%d_%H%M%S")
-                fname = f"application_view_{ts}.html"
-                print(f"Saving {fname}")
-                with open(fname, "w", encoding="utf-8") as f:
-                    f.write(page.content())
-                count += 1
+                try:
+                    greek_now = get_greek_time()
+                    ts = greek_now.strftime("%Y%m%d_%H%M%S")
+                    fname = f"application_view_{ts}.html"
+                    print(f"Saving {fname}")
+                    page_html = page.content()
+                    with open(fname, "w", encoding="utf-8") as f:
+                        f.write(page_html)
+                    count += 1
+                except Exception as e:
+                    print(f"❌ Error during page save or reload: {e}")
                 if now - loop_start + interval > duration:
                     break
                 time.sleep(interval)
-                # This is the codecell that makes sure the page is refreshed:
-                page.reload()
-                page.wait_for_load_state("networkidle")
+                try:
+                    page.reload()
+                    page.wait_for_load_state("networkidle")
+                except Exception as e:
+                    print(f"❌ Error during page reload: {e}")
             print(f"✅ Finished repeated downloads. Total pages saved: {count}")
         else:
             print("Login likely failed. Check credentials or form data.")
