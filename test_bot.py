@@ -108,7 +108,6 @@ def run_scraper():
                 count = 0
                 wait_until(target_time)
                 # Start repeated download loop for 1 minute, every 5 seconds
-                expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
                 while True:
                     now = time.time()
                     if now - loop_start > duration:
@@ -167,7 +166,6 @@ def run_scraper():
                     except Exception as e:
                         print(f"❌ Error during page reload: {e}")
                 print(f"✅ Finished repeated downloads. Total pages saved: {count}")
-                print(f"Expected asset files: {expected_files}")
             else:
                 print("Login likely failed. Check credentials or form data.")
                 with open("login_failed_response.html", "w", encoding="utf-8") as f:
