@@ -107,33 +107,33 @@ def run_scraper():
                 interval = 5   # seconds
                 count = 0
                 wait_until(target_time)
-            # Start repeated download loop for 1 minute, every 5 seconds
-            expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
-            while True:
-                now = time.time()
-                if now - loop_start > duration:
-                    break
-                try:
-                    greek_now = get_greek_time()
-                    ts = greek_now.strftime("%Y%m%d_%H%M%S")
-                    fname = f"application_view_{ts}.html"
-                    print(f"Saving {fname}")
-                    page_html = page.content()
-                    with open(fname, "w", encoding="utf-8") as f:
-                        f.write(page_html)
-                    count += 1
-                except Exception as e:
-                    print(f"❌ Error during page save or reload: {e}")
-                if now - loop_start + interval > duration:
-                    break
-                time.sleep(interval)
-                try:
-                    page.reload()
-                    page.wait_for_load_state("networkidle")
-                except Exception as e:
-                    print(f"❌ Error during page reload: {e}")
-            print(f"✅ Finished repeated downloads. Total pages saved: {count}")
-            print(f"Expected asset files: {expected_files}")
+                # Start repeated download loop for 1 minute, every 5 seconds
+                expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
+                while True:
+                    now = time.time()
+                    if now - loop_start > duration:
+                        break
+                    try:
+                        greek_now = get_greek_time()
+                        ts = greek_now.strftime("%Y%m%d_%H%M%S")
+                        fname = f"application_view_{ts}.html"
+                        print(f"Saving {fname}")
+                        page_html = page.content()
+                        with open(fname, "w", encoding="utf-8") as f:
+                            f.write(page_html)
+                        count += 1
+                    except Exception as e:
+                        print(f"❌ Error during page save or reload: {e}")
+                    if now - loop_start + interval > duration:
+                        break
+                    time.sleep(interval)
+                    try:
+                        page.reload()
+                        page.wait_for_load_state("networkidle")
+                    except Exception as e:
+                        print(f"❌ Error during page reload: {e}")
+                print(f"✅ Finished repeated downloads. Total pages saved: {count}")
+                print(f"Expected asset files: {expected_files}")
             else:
                 print("Login likely failed. Check credentials or form data.")
                 with open("login_failed_response.html", "w", encoding="utf-8") as f:

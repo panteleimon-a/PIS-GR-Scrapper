@@ -107,67 +107,67 @@ def run_scraper():
                 interval = 5   # seconds
                 count = 0
                 wait_until(target_time)
-            # Start repeated download loop for 1 minute, every 5 seconds
-            expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
-            while True:
-                now = time.time()
-                if now - loop_start > duration:
-                    break
-                try:
-                    greek_now = get_greek_time()
-                    ts = greek_now.strftime("%Y%m%d_%H%M%S")
-                    fname = f"application_view_{ts}.html"
-                    print(f"Saving {fname}")
-                    page_html = page.content()
-                    with open(fname, "w", encoding="utf-8") as f:
-                        f.write(page_html)
-                    # --- Asset download enhancement ---
+                # Start repeated download loop for 1 minute, every 5 seconds
+                expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
+                while True:
+                    now = time.time()
+                    if now - loop_start > duration:
+                        break
                     try:
-                        from bs4 import BeautifulSoup
-                        import os
-                        soup = BeautifulSoup(page_html, "html.parser")
-                        asset_dir = "application_assets"
-                        os.makedirs(asset_dir, exist_ok=True)
-                        # Find all asset links (PDFs, images)
-                        asset_tags = []
-                        asset_tags += soup.find_all("a", href=True)
-                        asset_tags += soup.find_all("iframe", src=True)
-                        asset_tags += soup.find_all("embed", src=True)
-                        asset_tags += soup.find_all("img", src=True)
-                        for tag in asset_tags:
-                            url = tag.get("href") or tag.get("src")
-                            if not url:
-                                continue
-                            if url.startswith("/"):
-                                url = "https://myrequests.pis.gr" + url
-                            if url.lower().endswith(".pdf") or url.lower().endswith(".jpg") or url.lower().endswith(".png"):
-                                asset_name = os.path.basename(url.split("?")[0])
-                                asset_path = os.path.join(asset_dir, asset_name)
-                                try:
-                                    asset_page = context.new_page()
-                                    asset_page.goto(url)
-                                    with open(asset_path, "wb") as af:
-                                        af.write(asset_page.content().encode("utf-8"))
-                                    asset_page.close()
-                                    print(f"Downloaded asset: {asset_path}")
-                                except Exception as asset_err:
-                                    print(f"❌ Error downloading asset {url}: {asset_err}")
-                    except Exception as soup_err:
-                        print(f"❌ Error parsing HTML for assets: {soup_err}")
-                    # --- End asset download enhancement ---
-                    count += 1
-                except Exception as e:
-                    print(f"❌ Error during page save or reload: {e}")
-                if now - loop_start + interval > duration:
-                    break
-                time.sleep(interval)
-                try:
-                    page.reload()
-                    page.wait_for_load_state("networkidle")
-                except Exception as e:
-                    print(f"❌ Error during page reload: {e}")
-            print(f"✅ Finished repeated downloads. Total pages saved: {count}")
-            print(f"Expected asset files: {expected_files}")
+                        greek_now = get_greek_time()
+                        ts = greek_now.strftime("%Y%m%d_%H%M%S")
+                        fname = f"application_view_{ts}.html"
+                        print(f"Saving {fname}")
+                        page_html = page.content()
+                        with open(fname, "w", encoding="utf-8") as f:
+                            f.write(page_html)
+                        # --- Asset download enhancement ---
+                        try:
+                            from bs4 import BeautifulSoup
+                            import os
+                            soup = BeautifulSoup(page_html, "html.parser")
+                            asset_dir = "application_assets"
+                            os.makedirs(asset_dir, exist_ok=True)
+                            # Find all asset links (PDFs, images)
+                            asset_tags = []
+                            asset_tags += soup.find_all("a", href=True)
+                            asset_tags += soup.find_all("iframe", src=True)
+                            asset_tags += soup.find_all("embed", src=True)
+                            asset_tags += soup.find_all("img", src=True)
+                            for tag in asset_tags:
+                                url = tag.get("href") or tag.get("src")
+                                if not url:
+                                    continue
+                                if url.startswith("/"):
+                                    url = "https://myrequests.pis.gr" + url
+                                if url.lower().endswith(".pdf") or url.lower().endswith(".jpg") or url.lower().endswith(".png"):
+                                    asset_name = os.path.basename(url.split("?")[0])
+                                    asset_path = os.path.join(asset_dir, asset_name)
+                                    try:
+                                        asset_page = context.new_page()
+                                        asset_page.goto(url)
+                                        with open(asset_path, "wb") as af:
+                                            af.write(asset_page.content().encode("utf-8"))
+                                        asset_page.close()
+                                        print(f"Downloaded asset: {asset_path}")
+                                    except Exception as asset_err:
+                                        print(f"❌ Error downloading asset {url}: {asset_err}")
+                        except Exception as soup_err:
+                            print(f"❌ Error parsing HTML for assets: {soup_err}")
+                        # --- End asset download enhancement ---
+                        count += 1
+                    except Exception as e:
+                        print(f"❌ Error during page save or reload: {e}")
+                    if now - loop_start + interval > duration:
+                        break
+                    time.sleep(interval)
+                    try:
+                        page.reload()
+                        page.wait_for_load_state("networkidle")
+                    except Exception as e:
+                        print(f"❌ Error during page reload: {e}")
+                print(f"✅ Finished repeated downloads. Total pages saved: {count}")
+                print(f"Expected asset files: {expected_files}")
             else:
                 print("Login likely failed. Check credentials or form data.")
                 with open("login_failed_response.html", "w", encoding="utf-8") as f:
