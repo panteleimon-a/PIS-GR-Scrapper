@@ -6,8 +6,14 @@ This project automates the login and data scraping process for the Greek PIS por
 - Logs in to https://myrequests.pis.gr/ with provided credentials
 - Waits until a scheduled Greek time (14:00 UTC+3) before scraping
 - Downloads the applications page every 5 seconds for 1 minute, saving each HTML snapshot
-- Robust error handling and logging
+- Automatically downloads all linked PDFs, images, and embedded assets from the /Applications page into `application_assets/`
+- Robust error handling and logging (including failed asset downloads)
 - Can be run locally or via GitHub Actions (see workflow in `.github/workflows/python-app.yml`)
+
+## Asset Parser
+- Downloads PDF, JPG, and HTML files from target pages.
+- `bot.py` and `test_bot.py` now check for `application_view.pdf` as an expected asset.
+- Asset files are saved in binary mode for correct handling.
 
 ## Requirements
 - Python 3.8+
@@ -42,7 +48,9 @@ python bot.py
 
 ### 3. Output
 - On success, HTML files named `application_view_YYYYMMDD_HHMMSS.html` will be saved.
+- All detected assets (PDFs, images) are saved in the `application_assets/` directory.
 - If login fails, `login_failed_response.html` will be saved for debugging.
+- Errors during asset download are logged to the console.
 
 ## GitHub Actions
 - The workflow in `.github/workflows/python-app.yml` allows scheduled or manual runs.

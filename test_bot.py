@@ -53,60 +53,62 @@ def run_scraper():
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        context = browser.new_context()
-        page = context.new_page()
-
-        print("Navigating to login page...")
-        page.goto(login_url)
-
-        # Fill in the login form
-        print("Filling in login form...")
-        page.fill('input[name="ctl00$MainContent$LoginUser$UserName"]', username)
-        page.fill('input[name="ctl00$MainContent$LoginUser$Password"]', password)
-        page.click('input[name="ctl00$MainContent$LoginUser$LoginButton"]')
-
-        # Wait for navigation or user-specific element
-        print("Waiting for login to complete...")
-        page.wait_for_load_state("networkidle")
-        page.wait_for_timeout(2000)  # Wait a bit for any redirects
-
-        # After login, check for the presence of the user's name or logout link
-        content = page.content()
-        login_success = False
         try:
-            welcome_span = page.query_selector("#HeadLoginView_HeadLoginName")
-            if welcome_span:
-                welcome_text = welcome_span.inner_text().strip()
-                print(f"Found welcome name: {welcome_text}")
-                login_success = True
-        except Exception as e:
-            print(f"Could not find welcome span: {e}")
+            context = browser.new_context()
+            page = context.new_page()
 
-        # Fallback: check for logout link
-        if not login_success:
+            print("Navigating to login page...")
+            page.goto(login_url)
+
+            # Fill in the login form
+            print("Filling in login form...")
+            page.fill('input[name="ctl00$MainContent$LoginUser$UserName"]', username)
+            page.fill('input[name="ctl00$MainContent$LoginUser$Password"]', password)
+            page.click('input[name="ctl00$MainContent$LoginUser$LoginButton"]')
+
+            # Wait for navigation or user-specific element
+            print("Waiting for login to complete...")
+            page.wait_for_load_state("networkidle")
+            page.wait_for_timeout(2000)  # Wait a bit for any redirects
+
+            # After login, check for the presence of the user's name or logout link
+            content = page.content()
+            login_success = False
             try:
-                logout_link = page.query_selector("#HeadLoginView_HeadLoginStatus")
-                if logout_link:
-                    print("Found logout link, login probably successful.")
+                welcome_span = page.query_selector("#HeadLoginView_HeadLoginName")
+                if welcome_span:
+                    welcome_text = welcome_span.inner_text().strip()
+                    print(f"Found welcome name: {welcome_text}")
                     login_success = True
             except Exception as e:
-                print(f"Could not find logout link: {e}")
+                print(f"Could not find welcome span: {e}")
 
-        if login_success:
-            print("Proceeding to applications page and starting 1-minute scrape window.")
-            # Go to applications page
-            page.goto(applications_url)
-            page.wait_for_load_state("networkidle")
-            # Wait until Greek time is 14:00
-            now = get_greek_time()
-            target_time = now.replace(hour=13, minute=59, second=59, microsecond=5)
-            print(f"✅ Scheduled start reached. Already at /Applications page. Waiting until 14:00 Greek time before scraping...")
-            loop_start = time.time()
-            duration = 60  # seconds
-            interval = 5   # seconds
-            count = 0
-            wait_until(target_time)
+            # Fallback: check for logout link
+            if not login_success:
+                try:
+                    logout_link = page.query_selector("#HeadLoginView_HeadLoginStatus")
+                    if logout_link:
+                        print("Found logout link, login probably successful.")
+                        login_success = True
+                except Exception as e:
+                    print(f"Could not find logout link: {e}")
+
+            if login_success:
+                print("Proceeding to applications page and starting 1-minute scrape window.")
+                # Go to applications page
+                page.goto(applications_url)
+                page.wait_for_load_state("networkidle")
+                # Wait until Greek time is 14:00
+                now = get_greek_time()
+                target_time = now.replace(hour=13, minute=59, second=59, microsecond=5)
+                print(f"✅ Scheduled start reached. Already at /Applications page. Waiting until 14:00 Greek time before scraping...")
+                loop_start = time.time()
+                duration = 60  # seconds
+                interval = 5   # seconds
+                count = 0
+                wait_until(target_time)
             # Start repeated download loop for 1 minute, every 5 seconds
+            expected_files = ["application_view.pdf", "application_view.jpg", "application_view.html"]
             while True:
                 now = time.time()
                 if now - loop_start > duration:
@@ -119,6 +121,40 @@ def run_scraper():
                     page_html = page.content()
                     with open(fname, "w", encoding="utf-8") as f:
                         f.write(page_html)
+                    # --- Asset download enhancement ---
+                    try:
+                        from bs4 import BeautifulSoup
+                        import os
+                        soup = BeautifulSoup(page_html, "html.parser")
+                        asset_dir = "application_assets"
+                        os.makedirs(asset_dir, exist_ok=True)
+                        # Find all asset links (PDFs, images)
+                        asset_tags = []
+                        asset_tags += soup.find_all("a", href=True)
+                        asset_tags += soup.find_all("iframe", src=True)
+                        asset_tags += soup.find_all("embed", src=True)
+                        asset_tags += soup.find_all("img", src=True)
+                        for tag in asset_tags:
+                            url = tag.get("href") or tag.get("src")
+                            if not url:
+                                continue
+                            if url.startswith("/"):
+                                url = "https://myrequests.pis.gr" + url
+                            if url.lower().endswith(".pdf") or url.lower().endswith(".jpg") or url.lower().endswith(".png"):
+                                asset_name = os.path.basename(url.split("?")[0])
+                                asset_path = os.path.join(asset_dir, asset_name)
+                                try:
+                                    asset_page = context.new_page()
+                                    asset_page.goto(url)
+                                    with open(asset_path, "wb") as af:
+                                        af.write(asset_page.content().encode("utf-8"))
+                                    asset_page.close()
+                                    print(f"Downloaded asset: {asset_path}")
+                                except Exception as asset_err:
+                                    print(f"❌ Error downloading asset {url}: {asset_err}")
+                    except Exception as soup_err:
+                        print(f"❌ Error parsing HTML for assets: {soup_err}")
+                    # --- End asset download enhancement ---
                     count += 1
                 except Exception as e:
                     print(f"❌ Error during page save or reload: {e}")
@@ -131,13 +167,14 @@ def run_scraper():
                 except Exception as e:
                     print(f"❌ Error during page reload: {e}")
             print(f"✅ Finished repeated downloads. Total pages saved: {count}")
-        else:
-            print("Login likely failed. Check credentials or form data.")
-            with open("login_failed_response.html", "w", encoding="utf-8") as f:
-                f.write(content)
-            print("Login response saved to login_failed_response.html for inspection.")
-
-        browser.close()
+            print(f"Expected asset files: {expected_files}")
+            else:
+                print("Login likely failed. Check credentials or form data.")
+                with open("login_failed_response.html", "w", encoding="utf-8") as f:
+                    f.write(content)
+                print("Login response saved to login_failed_response.html for inspection.")
+        finally:
+            browser.close()
 
     end_time = time.time()
     elapsed = end_time - start_time
