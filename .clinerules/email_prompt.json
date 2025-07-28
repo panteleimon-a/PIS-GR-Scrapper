@@ -1,0 +1,16 @@
+{
+  "tasks": [
+    {
+      "task": "Modify the GitHub Actions workflow file (.github/workflows/python-app.yml) to include a step after artifact creation that runs send_artifact_email.py, passing appropriate arguments and using secrets if available."
+    },
+    {
+      "task": "Create a Python script named send_artifact_email.py in the repo root. The script should: 1) Check for SMTP email and password in environment variables (SMTP_USERNAME, SMTP_PASSWORD). 2) If present, use those for authentication; otherwise, read them from smtp.json. 3) Zip the HTML artifacts (pis-gr-scraper-html.zip) if not already zipped. 4) Send the zipped file as an attachment to isidora.k1708@gmail.com using SMTP."
+    },
+    {
+      "task": "Generate smtp.json in the repo root with example fields: { \"smtp_server\": \"smtp.gmail.com\", \"smtp_port\": 465, \"smtp_username\": \"your_email@gmail.com\", \"smtp_password\": \"your_password\", \"receiver\": \"isidora.k1708@gmail.com\" }"
+    },
+    {
+      "task": "Provide a guide for the user to add SMTP_USERNAME and SMTP_PASSWORD as secrets in the GitHub repository and ensure the workflow passes these env variables to the Python script."
+    }
+  ]
+}
