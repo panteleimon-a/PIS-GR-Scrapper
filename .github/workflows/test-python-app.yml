@@ -49,5 +49,6 @@ jobs:
       env:
         SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
         SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        SMTP_RECEIVER: ${{ secrets.SMTP_USERNAME }}
       run: |
         python send_artifact_email.py
