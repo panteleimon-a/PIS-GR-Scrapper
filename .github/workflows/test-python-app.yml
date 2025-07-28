@@ -42,4 +42,5 @@ jobs:
         name: pis-gr-scraper-html-test
         path: |
           *.html
+          application_assets/*
         if-no-files-found: warn
