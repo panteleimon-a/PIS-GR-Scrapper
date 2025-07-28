@@ -41,6 +41,5 @@ jobs:
       with:
         name: pis-gr-scraper-html
         path: |
-          application_view_*.html
-          login_failed_response.html
+          *.html
         if-no-files-found: warn
