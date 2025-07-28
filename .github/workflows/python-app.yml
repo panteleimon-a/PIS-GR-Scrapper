@@ -29,18 +29,25 @@ jobs:
       run: |
         python -m playwright install
 
-    - name: Run bot.py
+    - name: Run b.py
       env:
         PIS_USERNAME: ${{ secrets.PIS_USERNAME }}
         PIS_PASSWORD: ${{ secrets.PIS_PASSWORD }}
       run: |
-        python bot.py
+        python test_bot.py
 
     - name: Upload HTML artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: pis-gr-scraper-html
+        name: pis-gr-scraper-html-test
         path: |
           *.html
           application_assets/*
         if-no-files-found: warn
+
+    - name: Send artifacts via email
+      env:
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      run: |
+        python send_artifact_email.py

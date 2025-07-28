@@ -44,3 +44,10 @@ jobs:
           *.html
           application_assets/*
         if-no-files-found: warn
+
+    - name: Send artifacts via email
+      env:
+        SMTP_USERNAME: ${{ secrets.SMTP_USERNAME }}
+        SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+      run: |
+        python send_artifact_email.py
