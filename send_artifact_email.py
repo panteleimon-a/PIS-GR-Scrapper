@@ -16,7 +16,7 @@ if smtp_username and smtp_password:
     print('SMTP credentials loaded from environment variables.')
     smtp_server = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
     smtp_port = int(os.environ.get('SMTP_PORT', 465))
-    receiver = os.environ.get('SMTP_RECEIVER', 'isidora.k1708@gmail.com')
+    receiver = os.environ.get('SMTP_RECEIVER')
 else:
     with open(SMTP_JSON, 'r', encoding='utf-8') as f:
         smtp_conf = json.load(f)
